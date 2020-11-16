@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Destination-in blendMode - ImageryTileLayer</title>
+
+    <link
+      rel="stylesheet"
+      href="https://jsdev.arcgis.com/4.18/esri/themes/light/main.css"
+    />
+    <script src="https://jsdev.arcgis.com/4.18/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/GroupLayer",
+        "esri/layers/ImageryTileLayer",
+        "esri/layers/TileLayer",
+        "esri/widgets/BasemapToggle",
+        "esri/widgets/LayerList"
+      ], (
+        Map,
+        MapView,
+        GroupLayer,
+        ImageryTileLayer,
+        TileLayer,
+        BasemapToggle,
+        LayerList
+      ) =>
+        (async () => {
+          // add the world elevation service as imagerytilelayer
+          // set the destination-in blend mode
+          const layer = new ImageryTileLayer({
+            url:
+              "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+            title: "World Elevation",
+            blendMode: "destination-in"
+          });
+
+          await layer.load();
+
+          // set a raster stretch renderer for the imagerytilelayer
+          layer.renderer = {
+            type: "raster-stretch",
+            stretchType: "standard-deviation",
+            statistics: [layer.rasterInfo.statistics[0]],
+            numberOfStandardDeviations: 1,
+            colorRamp: {
+              type: "algorithmic",
+              fromColor: [0, 0, 0, 0],
+              toColor: [0, 0, 0, 1]
+            }
+          };
+
+          const map = new Map({
+            basemap: "gray-vector",
+            layers: [
+              // World elevation imageryTileLayer drawn over the world imagery layer.
+              // But because imagerytilelayer has destination-in blendmode, the world
+              // imagery layer is drawn over the elevation data where both layers overlap
+              new GroupLayer({
+                layers: [
+                  new TileLayer({
+                    url:
+                      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+                    listMode: "hide-children"
+                  }),
+                  layer
+                ]
+              })
+            ]
+          });
+
+          view = new MapView({
+            container: "viewDiv",
+            map: map,
+            zoom: 4,
+            center: [84, 31],
+            constraints: {
+              snapToZoom: false
+            }
+          });
+
+          view.ui.add(
+            new LayerList({
+              view,
+              listItemCreatedFunction(event) {
+                if (event.item.layer === layer) {
+                  // document.getElementById("layerListDiv").style.display = "block";
+                  event.item.panel = {
+                    content: document.getElementById("layerListDiv"),
+                    open: true,
+                    className: "esri-icon-maps"
+                  };
+                }
+              }
+            }),
+            "top-right"
+          );
+
+          view.ui.add(
+            new BasemapToggle({
+              view,
+              nextBasemap: "dark-gray-vector"
+            }),
+            "bottom-left"
+          );
+        })());
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <div ="layerListDiv"></div>
+  </body>
+</html>
