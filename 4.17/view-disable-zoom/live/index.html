@@ -8,101 +8,152 @@
     />
 
     <title>
-      Disable all zooming on the view | Sample | ArcGIS API for JavaScript 4.17
+      Disable mouse-wheel and single-touch navigation | Sample | ArcGIS API for
+      JavaScript 4.17
     </title>
 
     <style>
       html,
-      body,
-      #viewDiv {
+      body {
         padding: 0;
         margin: 0;
         height: 100%;
         width: 100%;
       }
+      .panel {
+        height: 200px;
+        width: 100%;
+        display: flex;
+        padding: 10px;
+      }
+      #viewDiv {
+        height: 100%;
+        width: 100%;
+      }
+      #warning {
+        background-color: #242424;
+        opacity: 0;
+        width: 100%;
+        text-align: center;
+        transition: opacity 250ms ease-in-out;
+        transition-delay: 125ms;
+      }
+      #warning .message {
+        font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial,
+          sans-serif;
+        font-size: 14px;
+        padding: 15px;
+        background-color: #000;
+        color: #f4f4f4;
+      }
     </style>
 
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/4.17/esri/themes/light/main.css"
+      href="https://js.arcgis.com/4.17/esri/themes/dark/main.css"
     />
     <script src="https://js.arcgis.com/4.17/"></script>
 
     <script>
-      require(["esri/WebMap", "esri/views/MapView"], function (
-        WebMap,
-        MapView
-      ) {
-        var map = new WebMap({
-          portalItem: {
-            // autocasts as new PortalItem()
-            id: "d5dda743788a4b0688fe48f43ae7beb9"
-          }
-        });
-
-        var view = new MapView({
+      require(["esri/Map", "esri/views/MapView"], function (EsriMap, MapView) {
+        const view = new MapView({
           container: "viewDiv",
-          map: map,
-          ui: {
-            components: ["attribution"]
+          map: new EsriMap({
+            basemap: "hybrid"
+          }),
+          center: [174.062376, -39.355675],
+          zoom: 11,
+          // Disable mouse-wheel and single-touch map navigation.
+          navigation: {
+            mouseWheelZoomEnabled: false,
+            browserTouchPanEnabled: false
           }
         });
 
-        view.when(disableZooming);
+        // Listen to events that have been disallowed for the view navigation.
+        view.on("mouse-wheel", function (e) {
+          warnUser(
+            "To zoom in please double-click the map or use zoom in/out buttons."
+          );
+        });
 
-        /**
-         * Disables all zoom gestures on the given view instance.
-         *
-         * @param {esri/views/MapView} view - The MapView instance on which to
-         *                                  disable zooming gestures.
-         */
-        function disableZooming(view) {
-          view.popup.dockEnabled = true;
-
-          // Removes the zoom action on the popup
-          view.popup.actions = [];
-
-          // stops propagation of default behavior when an event fires
-          function stopEvtPropagation(event) {
-            event.stopPropagation();
+        // Trap attempted single touch panning.
+        const pointers = new Map(); // javascript map
+        view.on("pointer-down", function (event) {
+          if (event.pointerType !== "touch") {
+            return;
           }
+          pointers.set(event.pointerId, { x: event.x, y: event.y });
+        });
 
-          // exlude the zoom widget from the default UI
-          view.ui.components = ["attribution"];
+        view.on(["pointer-up", "pointer-leave"], function (event) {
+          if (event.pointerType !== "touch") {
+            return;
+          }
+          pointers.delete(event.pointerId);
+        });
 
-          // disable mouse wheel scroll zooming on the view
-          view.on("mouse-wheel", stopEvtPropagation);
+        view.on("pointer-move", function (event) {
+          if (event.pointerType !== "touch") {
+            return;
+          }
+          if (pointers.size !== 1) {
+            return;
+          }
+          const distance = Math.sqrt(
+            Math.pow(event.x - pointers.get(event.pointerId).x, 2) +
+              Math.pow(event.y - pointers.get(event.pointerId).y, 2)
+          );
+          if (distance < 20) {
+            return;
+          }
+          warnUser("Please use two fingers to pan the map.");
+        });
 
-          // disable zooming via double-click on the view
-          view.on("double-click", stopEvtPropagation);
-
-          // disable zooming out via double-click + Control on the view
-          view.on("double-click", ["Control"], stopEvtPropagation);
-
-          // disables pinch-zoom and panning on the view
-          view.on("drag", stopEvtPropagation);
-
-          // disable the view's zoom box to prevent the Shift + drag
-          // and Shift + Control + drag zoom gestures.
-          view.on("drag", ["Shift"], stopEvtPropagation);
-          view.on("drag", ["Shift", "Control"], stopEvtPropagation);
-
-          // prevents zooming with the + and - keys
-          view.on("key-down", function (event) {
-            var prohibitedKeys = ["+", "-", "Shift", "_", "="];
-            var keyPressed = event.key;
-            if (prohibitedKeys.indexOf(keyPressed) !== -1) {
-              event.stopPropagation();
-            }
-          });
-
-          return view;
+        // Display a warning.
+        let timeout;
+        function warnUser(warning) {
+          const warningDiv = document.getElementById("warning");
+          warningDiv.innerHTML = '<div class="message">' + warning + "</div>";
+          warningDiv.style.opacity = 1;
+          if (timeout) {
+            window.clearTimeout(timeout);
+          }
+          timeout = window.setTimeout(function () {
+            warningDiv.style.opacity = 0;
+            warningDiv.innerHTML = "";
+          }, 4000);
         }
       });
     </script>
   </head>
-
   <body>
+    <div class="panel esri-widget">
+      <div class="esri-feature__size-container">
+        <h4 class="esri-feature__title">Egmont National Park, New Zealand</h4>
+        <p class="esri-feature__text esri-feature__content-element">
+          The primary feature is of the park is Mount Taranaki, a dormant
+          volcano. The park's nearly circular boundary protects forested areas
+          on the mountain's slopes.
+        </p>
+        <p class="esri-feature__text esri-feature__content-element">
+          Scroll down to see a map and learn more about this place.
+        </p>
+      </div>
+    </div>
     <div id="viewDiv"></div>
+    <div id="warning"></div>
+    <div class="panel esri-widget">
+      <div class="esri-feature__size-container">
+        <h4 class="esri-feature__title">Mount Taranaki</h4>
+        <p class="esri-feature__text esri-feature__content-element">
+          For many centuries the mountain was called Taranaki by Māori. The
+          Māori word tara means mountain peak, and naki is thought to come from
+          ngaki, meaning "shining", a reference to the snow-clad winter nature
+          of the upper slopes. It was also named Pukehaupapa and Pukeonaki by
+          iwi who lived in the region in ancient times.
+        </p>
+      </div>
+    </div>
   </body>
 </html>

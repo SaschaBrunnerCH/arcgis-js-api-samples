@@ -67,11 +67,8 @@
       require([
         "esri/views/SceneView",
         "esri/WebScene",
-        "esri/webscene/Slide",
-
-        // Array shim for IE11
-        "@dojo/framework/shim/array"
-      ], function (SceneView, WebScene, Slide, Array) {
+        "esri/webscene/Slide"
+      ], function (SceneView, WebScene, Slide) {
         /*********************************************************************
          * Create a new WebScene referencing a WebScene ID from ArcGIS Online
          * or an on-premise portal.

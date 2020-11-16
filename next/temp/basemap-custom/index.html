@@ -79,7 +79,9 @@
         view.when(function () {
           // Add a basemap toggle widget to toggle between basemaps
           var toggle = new BasemapToggle({
-            titleVisible: true,
+            visibleElements: {
+              title: true
+            },
             view: view,
             nextBasemap: stamen
           });

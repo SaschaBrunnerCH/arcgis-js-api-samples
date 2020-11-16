@@ -129,9 +129,6 @@
       .forEach(function(styleName) {
         style[styleName] = transform;
       });
-
-    // force refresh the transform on IE11
-    node.setAttribute("transform", window.getComputedStyle(node).getPropertyValue("transform"));
   }
 
   var pointerBehavior = function(angleToMillisecsFn, event) {

@@ -7,7 +7,6 @@
       content="initial-scale=1,maximum-scale=1,user-scalable=no"
     />
     <title>TimeSlider widget | Sample | ArcGIS API for JavaScript 4.18</title>
-
     <link
       rel="stylesheet"
       href="https://js.arcgis.com/next/esri/themes/light/main.css"
@@ -67,39 +66,27 @@
         const timeSlider = new TimeSlider({
           container: "timeSlider",
           view: view,
-          timeVisible: true
+          timeVisible: true, // show the time stamps on the timeslider
+          loop: true
         });
         view.ui.add(timeSlider, "manual");
 
-        // add the UI for titles, stats and chart.
+        // add the UI for a title
         view.ui.add("titleDiv", "top-right");
 
         view.whenLayerView(layer).then(function (lv) {
-          // around up the end time to full hour
-          var endDate = layer.timeInfo.fullTimeExtent.end;
-          if (endDate.getHours() === 4 || endDate.getHours() === 10) {
-            endDate.setHours(endDate.getHours() + 1);
-          }
-          endDate.setMinutes(0);
-          endDate.setSeconds(0);
-
-          timeSlider.fullTimeExtent = {
-            start: layer.timeInfo.fullTimeExtent.start,
-            end: endDate
-          };
-          timeSlider.stops = {
-            interval: layer.timeInfo.interval
-          };
+          // around up the full time extent to full hour
+          timeSlider.fullTimeExtent = layer.timeInfo.fullTimeExtent.expandTo(
+            "hours"
+          );
         });
-
         const legend = new Legend({
           view: view
         });
         const legendExpand = new Expand({
-          expandIconClass: "esri-icon-collection",
+          expandIconClass: "esri-icon-legend",
           expandTooltip: "Legend",
           view: view,
-          expanded: true,
           content: legend,
           expanded: false
         });

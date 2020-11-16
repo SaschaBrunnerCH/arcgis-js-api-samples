@@ -59,10 +59,10 @@
         var featureLayer = new FeatureLayer({
           url:
             "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/OpenBeerDatabase/FeatureServer/0",
-          outFields: ["*"],
           definitionExpression: "country = 'United States'",
           popupTemplate: {
             title: "{name}",
+            lastEditInfoEnabled: false,
             actions: [
               {
                 id: "find-brewery",

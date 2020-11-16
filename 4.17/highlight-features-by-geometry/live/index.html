@@ -120,7 +120,6 @@
           csvLayerView,
           polygonGraphicsLayer,
           sketchViewModel,
-          highlight,
           grid;
         const gridDiv = document.getElementById("grid");
         const infoDiv = document.getElementById("info");
@@ -210,13 +209,18 @@
                   infoDiv.style.zIndex = 90;
                 }
 
-                // remove existing highlighted features
-                if (highlight) {
-                  highlight.remove();
+                if (results.features.length === 0) {
+                  csvLayerView.effect = null;
+                } else {
+                  csvLayerView.effect = {
+                    filter: {
+                      geometry: query.geometry,
+                      distance: query.distance,
+                      units: query.units
+                    },
+                    excludedEffect: "blur(5px) grayscale(80%)"
+                  };
                 }
-
-                // highlight query results
-                highlight = csvLayerView.highlight(graphics);
 
                 // get the attributes to display in the grid
                 const data = graphics.map(function (feature, i) {
@@ -441,10 +445,6 @@
           view = new MapView({
             container: "viewDiv",
             map: map,
-            highlightOptions: {
-              color: "#2B65EC",
-              fillOpacity: 0.4
-            },
             padding: {
               bottom: infoDiv.clientHeight // Same value as the #infoDiv height in CSS
             }
@@ -453,8 +453,8 @@
           const legendExpand = new Expand({
             view: view,
             content: new Legend({
-              view: view,
-              style: "card"
+              view: view
+              // style: "card"
             })
           });
           view.ui.add(legendExpand, "top-left");

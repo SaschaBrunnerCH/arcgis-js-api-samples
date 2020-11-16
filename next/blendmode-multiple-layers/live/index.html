@@ -7,7 +7,8 @@
       content="initial-scale=1,maximum-scale=1,user-scalable=no"
     />
     <title>
-      Highlight feature with blending | Sample | ArcGIS API for JavaScript 4.18
+      Highlight feature with effects and blending | Sample | ArcGIS API for
+      JavaScript 4.18
     </title>
     <style>
       html,
@@ -38,8 +39,7 @@
         "esri/Graphic",
         "esri/layers/FeatureLayer",
         "esri/layers/GraphicsLayer",
-        "esri/layers/GroupLayer",
-        "esri/geometry/geometryEngine"
+        "esri/layers/GroupLayer"
       ], function (
         WebMap,
         MapView,
@@ -47,8 +47,7 @@
         Graphic,
         FeatureLayer,
         GraphicsLayer,
-        GroupLayer,
-        geometryEngine
+        GroupLayer
       ) {
         const map = new WebMap({
           basemap: {
@@ -57,19 +56,16 @@
             }
           }
         });
-
         const vtLayer = new VectorTileLayer({
           portalItem: {
             id: "2afe5b807fa74006be6363fd243ffb30" // gray vector tiles canvas
           }
         });
-
         const countries = new FeatureLayer({
           portalItem: {
             id: "53a1e68de7e4499cad77c80daba46a94" // boundaries of countries
           }
         });
-
         // This group layer groups the gray canvas vector tiles and
         // countries feature layer.
         // With destination-over blendMode, the background layer covers
@@ -80,7 +76,6 @@
           blendMode: "destination-over"
         });
         map.add(groupLayer);
-
         const view = new MapView({
           container: "viewDiv",
           map: map,
@@ -91,41 +86,35 @@
             minScale: 147914381
           }
         });
-
         let layerView, animation;
-
-        // buffersGraphicsLayer will contain buffer polygons returned from the
-        // geometryEngine and a white polygon graphic covering the world extent.
-        // When the map loads it is added to the basemap.
+        // countryGraphicsLayer is added to the view's basemap.
+        // It will contain black polygon covering the extent of the world
+        // the country graphic will also be added to this layer when user clicks a country.
         // With destination-in blend mode, the contents of background layer is
         // kept where it overlaps with top layer. Everything else is made transparent.
-        // in this case, the buffersGraphicsLayer will be displayed underneath
-        // modern antique vector tiles basemap
-        const buffersGraphicsLayer = new GraphicsLayer({
-          blendMode: "destination-in"
+        // In this case, the countryGraphicsLayer will be displayed underneath
+        // modern antique vector tiles basemap.
+        // The bloom effect will add a glow around the selected country.
+        const countryGraphicsLayer = new GraphicsLayer({
+          blendMode: "destination-in",
+          effect: "bloom(200%)"
         });
-
         map.loadAll().then(async () => {
           addWorld();
+          map.basemap.baseLayers.getItemAt(1).blendMode = "multiply";
           // add the buffer graphicslayer to the basemap
-          map.basemap.baseLayers.add(buffersGraphicsLayer);
-
+          map.basemap.baseLayers.add(countryGraphicsLayer);
           // get a reference ot the countries featurelayer's layerview
           // layerview will be queried to get the intersecting country
           // when user clicks on the map
           layerView = await view.whenLayerView(countries);
         });
         view.ui.add("messageDiv", "top-right");
-
-        // when user clicks on a country, we will buffer the country
-        // with five distances via geomeryEngine
-        const bufferDistances = [0, 30, 60, 95, 125];
         const symbol = {
           type: "simple-fill",
-          color: "rgba(255, 255, 255, 0.2)",
+          color: "white",
           outline: null
         };
-
         // listen to the view's click event
         view.on("click", async (event) => {
           // query the countries featurelayer for a country that intersects the point
@@ -138,30 +127,16 @@
             maxAllowableOffset: 10000,
             outFields: ["*"]
           });
-
-          buffersGraphicsLayer.graphics.removeAll();
+          countryGraphicsLayer.graphics.removeAll();
           animation && animation.remove();
-
           let world = addWorld();
-
-          // if user clicked on a country and buffers are returned
-          // add the buffer polygons to the graphicslayer
+          // add the clicked country feature to the graphicslayer
           if (feature) {
-            const bufferGraphics = bufferDistances.map((distance) => ({
-              geometry: geometryEngine.buffer(
-                feature.geometry,
-                distance,
-                "kilometers"
-              ),
-              symbol
-            }));
-
-            buffersGraphicsLayer.graphics.addMany(bufferGraphics);
-
+            feature.symbol = symbol;
+            countryGraphicsLayer.graphics.add(feature);
             // add a fade animation to show the highlight effect
             // for the selected country
             animation = fadeWorld(world);
-
             // zoom to the highlighted country
             view.goTo(
               {
@@ -172,7 +147,6 @@
             );
           }
         });
-
         function addWorld(world) {
           world = new Graphic({
             geometry: {
@@ -188,15 +162,12 @@
               outline: null
             }
           });
-
-          buffersGraphicsLayer.graphics.add(world);
+          countryGraphicsLayer.graphics.add(world);
           return world;
         }
-
         // add a fading animation when user clicks on a country
         function fadeWorld(world) {
           var timer;
-
           // requestAnimationFrame method specifies "frame" function
           // to perform an animation where the opacity of the world polygon graphic
           // decreased by 0.1 until it is 0 or completely transparent
@@ -209,7 +180,6 @@
               timer = requestAnimationFrame(frame);
             }
           }
-
           frame();
           return {
             remove() {
